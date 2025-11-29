@@ -1,5 +1,5 @@
 @echo off
-:: pingalot by Fran Thomas (fran.thomas@synetrix.co.uk)
+:: pingalot by @cp7crash
 :: checks various size icmp packets can be sent to a host when given two lengths
 
 if "%1"=="" goto useage

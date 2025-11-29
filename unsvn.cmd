@@ -1,7 +1,7 @@
 @echo off
 
 :unsvn.cmd
-  echo UN-SVN by .:Fran, cleans SVN dirs/files from a directory tree
+  echo UN-SVN by @cp7crash, cleans SVN dirs/files from a directory tree
   if "%1"=="" goto help
   echo Looking in %1 for .svn dirs..
   set unsvnx=0
