@@ -10,6 +10,9 @@ if ($Path -match '^[a-zA-Z]:$') {
     $Path = "$Path\"
 }
 
+$script:InaccessibleFolders = 0
+$script:OneDriveRepos = @()
+
 function GitAvailable {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Host "ERROR: git is not installed or not on PATH." -ForegroundColor Red
@@ -101,17 +104,73 @@ function GetRepos {
         [string]$Path
     )
 
+    $discoveryActivity = "Discovering git repos"
+    Write-Progress -Id 3 -Activity $discoveryActivity -Status "Initializing..." -PercentComplete 0
+
     $repos = @()
+    $checked = 0
+    $found = 0
+    $oneDriveFound = 0
+    $direction = 1
+    $progress = 0
+    $progressIncrement = 5
+    $updateIntervalMs = 250
+    $lastUpdate = Get-Date
+    $sinceLastUpdate = 0
     
+    $candidate = Get-Item $Path
+    $checked++
     if (Test-Path (Join-Path $Path ".git")) {
-        $repos += Get-Item $Path
+        $repos += $candidate
+        $found++
     }
     
-    $repos += Get-ChildItem -Path $Path -Directory -Recurse | Where-Object {
-        Test-Path (Join-Path $_.FullName ".git")
+    $repoErrors = @()
+    $repos += Get-ChildItem -Path $Path -Directory -Recurse -ErrorAction SilentlyContinue -ErrorVariable +repoErrors | ForEach-Object {
+        $checked++
+        $sinceLastUpdate++
+        if (Test-Path (Join-Path $_.FullName ".git")) {
+            $found++
+            $_
+        }
+        $now = Get-Date
+        $shouldUpdate = ($now - $lastUpdate).TotalMilliseconds -ge $updateIntervalMs -or $sinceLastUpdate -ge 50
+        if ($shouldUpdate) {
+            $progress += $progressIncrement
+            if ($progress -gt 100) { $progress = 0 }
+            $lastUpdate = $now
+            $sinceLastUpdate = 0
+
+            Write-Progress -Id 3 -Activity $discoveryActivity -Status "Checked $checked folders, found $found repos ($oneDriveFound OneDrive, $($repoErrors.Count) denied)" -PercentComplete $progress
+        }
     }
+
+    Write-Progress -Id 3 -Activity $discoveryActivity -Status "Discovery complete ($found repos, OneDrive: $oneDriveFound, access denied: $($repoErrors.Count))" -PercentComplete 100 -Completed
+
+    $script:InaccessibleFolders += ($repoErrors | Measure-Object).Count
     
-    return $repos
+    $oneDriveRoots = @($env:OneDrive, $env:OneDriveCommercial, $env:OneDriveConsumer) | Where-Object { $_ -and $_.Trim().Length -gt 0 }
+    if ($oneDriveRoots.Count -eq 0 -and $env:UserProfile) {
+        $oneDriveRoots += (Join-Path $env:UserProfile "OneDrive")
+    }
+    $repos | ForEach-Object {
+        $path = $_.FullName
+        $isOneDrive = $false
+        foreach ($root in $oneDriveRoots) {
+            if ($path.StartsWith($root, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $isOneDrive = $true
+                break
+            }
+        }
+
+        if ($isOneDrive) {
+            $oneDriveFound++
+            $script:OneDriveRepos += $_
+        }
+        else {
+            $_
+        }
+    }
 }
 
 function GetShame {
@@ -177,6 +236,14 @@ function ShowSummary {
     Sort-Object Path |
     Select-Object Path, Staged, Uncommitted |
     Format-Table -AutoSize
+
+    if ($script:OneDriveRepos.Count -gt 0) {
+        Write-Host ""
+        Write-Host "OneDrive git repos (skipped from scanning):" -ForegroundColor DarkGray
+        $script:OneDriveRepos | Sort-Object FullName | ForEach-Object {
+            Write-Host " - $($_.FullName)" -ForegroundColor Red
+        }
+    }
 }
 
 function ShowShameLevel {
@@ -244,6 +311,18 @@ function ShowShameLevel {
 
     Write-Host "MAJOR (you absolute devil; commit or stash already!!))" -ForegroundColor Red
     
+    Write-Host "Additional: OneDrive repos skipped: $($script:OneDriveRepos.Count), access denied folders: $script:InaccessibleFolders" -ForegroundColor DarkYellow
+}
+
+function ShowScanNotes {
+    if ($script:OneDriveRepos.Count -gt 0) {
+        $example = $script:OneDriveRepos | Select-Object -First 1
+        Write-Host "Skipped $($script:OneDriveRepos.Count) git repos on OneDrive (e.g. $($example.FullName))" -ForegroundColor Yellow
+    }
+
+    if ($script:InaccessibleFolders -gt 0) {
+        Write-Host "Could not access $script:InaccessibleFolders folder(s) during scan." -ForegroundColor DarkYellow
+    }
 }
 
 # Main script logic
@@ -264,18 +343,27 @@ try {
 
     Write-Output "found $($repos.Count)"
     Write-Output "Scanning for ways to shame you..."
+    $repoIndex = 0
     foreach ($repo in $repos) {
+        $repoIndex++
+        ShameProgress -RepoIndex $repoIndex -RepoCount $repos.Count -FileIndex 0 -FileCount 0 -RepoName $repo.Name
         $r = GetShame -RepoPath $repo.FullName
         if ($null -ne $r -and $r.Lines.Count -gt 0) {
             $results += $r
+            ShameProgress -RepoIndex $repoIndex -RepoCount $repos.Count -FileIndex $r.Lines.Count -FileCount $r.Lines.Count -RepoName $repo.Name
             if ($Detailed) {
                 ShowDetail $r
             }
         }
     }
+    if ($repos.Count -gt 0) {
+        Write-Progress -Id 1 -Activity "Scanning git repos" -Status "Done" -PercentComplete 100
+        Write-Progress -Id 2 -Activity "Inspecting changes" -Status "Done" -PercentComplete 100
+    }
 
     if ($results.Count -eq 0) {
         Write-Host "No shame detected. All repos clean." -ForegroundColor Green
+        ShowScanNotes
         return
     }
 
@@ -284,6 +372,7 @@ try {
     }
 
     ShowShameLevel -totalRepos $results.Count -totalChanges ($results | Measure-Object -Property Uncommitted -Sum).Sum
+    ShowScanNotes
 }
 finally {
     Set-Location $start
