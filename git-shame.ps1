@@ -117,11 +117,8 @@ function GetShame {
 
     Push-Location $RepoPath
     try {
-        $r = [RepoState]::new($RepoPath)
-        
-        if (-not $r.Status) {
-            return $null
-        }
+        # Run git status inside the repo so we get the right working tree
+        $r = [RepoState]::new((Get-Location).Path)
 
         if ($r.Lines.Count -eq 0) {
             return $null
@@ -159,36 +156,51 @@ function ShowDetail {
 
     if ($r.Lines.Count -gt 3) {
         $remaining = $r.Lines.Count - 3
-        Write-Host "+$remaining others: " -NoNewline
+        Write-Host "+$remaining others, " -NoNewline
     }
 
     Write-Host "uncommitted $($r.Uncommitted), staged $($r.Staged)"
     
 }
 
+function ShowSummary {
+    param(
+        [RepoState[]]$results
+    )
+     
+    $results |
+    Sort-Object Path |
+    Select-Object Path, Staged, Uncommitted |
+    Format-Table -AutoSize
+}
+
 function ShowShameLevel {
     param(
+        [Parameter(Mandatory = $true)]
+        [int]$totalRepos,
         [Parameter(Mandatory = $true)]
         [int]$totalChanges
     )
 
+    WRite-Host ""
+    Write-Host "git-shame " -ForegroundColor DarkGray -NoNewline
+    Write-Host "state: " -NoNewline
+    Write-Host "$totalRepos repos with shame, $totalChanges uncommitted changes" -ForegroundColor Cyan
+    Write-Host "git-shame " -ForegroundColor DarkGray -NoNewline
+    Write-Host "level: " -NoNewline
+
     if ($totalChanges -eq 0) {
-        $label = "NO SHAME"
-        $desc = "Monk-level commit discipline"
-        $color = "Green"
-    }
-    elseif ($totalChanges -le 10) {
-        $label = "SOME SHAME"
-        $desc = "Mildly grubby working tree"
-        $color = "Yellow"
-    }
-    else {
-        $label = "MAJOR SHAME"
-        $desc = "Full goblin mode; time to commit or stash"
-        $color = "Red"
+        Write-Host "NONE (monk-level commit discipline!)" -ForegroundColor Green
+        return
     }
 
-    Write-Host "Shame level: $label - $desc" -ForegroundColor $color
+    if ($totalChanges -le 10) {
+        Write-Host "SOME (mildly grubby working tree)" -ForegroundColor Yellow
+        return
+    }
+
+    Write-Host "MAJOR (you absolute devil; commit or stash already!!))" -ForegroundColor Red
+    
 }
 
 # Main script logic
@@ -210,10 +222,8 @@ try {
     Write-Output "found $($repos.Count)"
     Write-Output "Scanning for ways to shame you..."
     foreach ($repo in $repos) {
-        #$r = GetShame -RepoPath $repo.FullName
-        Write-Output $repo
-        $r = [RepoState]::new($repo)
-        if ($r.Lines.Count -gt 0) {
+        $r = GetShame -RepoPath $repo.FullName
+        if ($null -ne $r -and $r.Lines.Count -gt 0) {
             $results += $r
             if ($Detailed) {
                 ShowDetail $r
@@ -226,18 +236,11 @@ try {
         return
     }
 
-    if (!Detailed) {
-        $results |
-        Sort-Object Repo |
-        Select-Object Path, Repo, Staged, Uncommitted |
-        Format-Table -AutoSize
+    if (-not $Detailed) {
+        ShowSummary -results $results
     }
 
-    $totalRepos = $results.Count
-    $totalChanges = ($results | Measure-Object -Property Uncommitted -Sum).Sum
-
-    Write-Host "$totalRepos repos with shame; $totalChanges uncommitted changes" -ForegroundColor Cyan
-    ShowShameLevel -totalChanges $totalChanges
+    ShowShameLevel -totalRepos $results.Count -totalChanges ($results | Measure-Object -Property Uncommitted -Sum).Sum
 }
 finally {
     Set-Location $start
