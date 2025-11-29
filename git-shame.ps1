@@ -5,6 +5,11 @@ param(
     [switch]$Detailed
 )
 
+# Normalize bare drive roots (e.g., "C:" -> "C:\") so they work the same as explicit roots.
+if ($Path -match '^[a-zA-Z]:$') {
+    $Path = "$Path\"
+}
+
 function GitAvailable {
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Host "ERROR: git is not installed or not on PATH." -ForegroundColor Red
@@ -181,6 +186,44 @@ function ShowShameLevel {
         [Parameter(Mandatory = $true)]
         [int]$totalChanges
     )
+
+    $shameAmounts = @{
+        1 = @(
+            "Paragon of tidiness",
+            "Commit Zen Master",
+            "So clean GitHub could eat off you",
+            "A walking lint roller",
+            "Version control’s favourite child"
+        )
+        2 = @(
+            "Slightly frayed around the edges",
+            "A bit commit-lazy today, aren’t we?",
+            "Tiny gremlin energy detected",
+            "Hands mildly covered in code dust",
+            "Not a disaster, but not bragging rights either"
+        )
+        3 = @(
+            "Practising selective awareness again",
+            "Your working tree has commitment issues",
+            "This is the digital equivalent of leaving mugs everywhere",
+            "Tiny chaos goblin with delusions of order",
+            "Half-finished thoughts scattered like confetti"
+        )
+        4 = @(
+            "You’re one untracked file away from a TED talk on regret",
+            "This repo is crying quiet tears",
+            "Your codebase wants joint custody",
+            "Somewhere, a CI pipeline just sighed",
+            "Git itself is questioning your life choices"
+        )
+        5 = @(
+            "This isn’t a repo, it’s a hostage situation",
+            "Your changes are filing a formal complaint",
+            "This is archaeological evidence, not code",
+            "Your undo history needs its own support group",
+            "Congratulations, you’ve achieved Maximum Goblin Mode"
+        )
+    }
 
     WRite-Host ""
     Write-Host "git-shame " -ForegroundColor DarkGray -NoNewline
