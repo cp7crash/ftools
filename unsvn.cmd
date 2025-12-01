@@ -1,4 +1,6 @@
 @echo off
+:: unsvn by @cp7crash
+:: removes traces of .svn from a directory tree
 
 :unsvn.cmd
   echo UN-SVN by .:Fran, cleans SVN dirs/files from a directory tree
@@ -23,6 +25,7 @@
   goto fini
   
 :help
+  echo Cleans SVN dirs/files from a directory tree
   echo.
   echo USAGE: unsvn x:\folder
   echo.

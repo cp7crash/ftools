@@ -1,25 +1,25 @@
 @echo off
-:: pingalot by Fran Thomas (fran.thomas@synetrix.co.uk)
+:: pingalot by @cp7crash
 :: checks various size icmp packets can be sent to a host when given two lengths
 
 if "%1"=="" goto useage
 if "%2"=="" goto useage
 :vars
-set pl_wait=1000
-set pl_ttl=54
-set pingalotH=%1
-set pingalotA=%2
-if "%3"=="" (
-  set pingalotB=%pingalotA%
-) else (
-  set pingalotB=%3
-)
-set pingalotX=%2
-set pingalotY=0
-set pingalotN=0
-set /a pingalotI=pingalotB-pingalotA+1
-echo PINGALOT; attempting to send %pingalotI% packets between %pingalotA% and %pingalotB%;
-echo  ping %pingalotH% -f -l [%pingalotA% - %pingalotB%] -n 1 -w %pl_wait% -i %pl_ttl%
+  set pl_wait=1000
+  set pl_ttl=54
+  set pingalotH=%1
+  set pingalotA=%2
+  if "%3"=="" (
+    set pingalotB=%pingalotA%
+  ) else (
+    set pingalotB=%3
+  )
+  set pingalotX=%2
+  set pingalotY=0
+  set pingalotN=0
+  set /a pingalotI=pingalotB-pingalotA+1
+  echo PINGALOT; attempting to send %pingalotI% packets between %pingalotA% and %pingalotB%;
+  echo  ping %pingalotH% -f -l [%pingalotA% - %pingalotB%] -n 1 -w %pl_wait% -i %pl_ttl%
 
 :loop
   call :pingit %pingalotH% %pingalotX%
