@@ -2,8 +2,8 @@
 :: pingalot by @cp7crash
 :: checks various size icmp packets can be sent to a host when given two lengths
 
-if "%1"=="" goto useage
-if "%2"=="" goto useage
+if "%1"=="" goto usage
+if "%2"=="" goto usage
 :vars
   set pl_wait=1000
   set pl_ttl=54
@@ -56,7 +56,7 @@ if "%2"=="" goto useage
 	set pingalotX=%pingalotB%
 	goto fini
 
-:useage
+:usage
   echo pingalot: ping a host with a range of buffer sizes
   echo.
   echo usage;
