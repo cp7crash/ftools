@@ -14,6 +14,7 @@ Random (sometimes useful) tools for (mostly) windows that (probably) shouldn't g
 | [shrinkpath](shrinkpath)        | Windows XP+  | Remove non-existent and shorten path var                          | Because a 1024 char path can be a problem                                |
 | [bren](bren.cmd)                | Windows 10+  | Add a pre/suffix to a collection of files                         | Adding many web resources to a Power Apps solution can be painful        |
 | [git-shame](gitshame.ps1)       | Windows 7+   | Find git repos with uncommitted changes, get appropriately shamed | One computer for the day, another by night                               |
+| [snk-peek](snk-peek.ps1)        | Windows 7+   | See inside Strong Name Keys                                       | Need to see whether we have pub/ private keys in .snk                    |
 
 ## using lib.cmd
 
@@ -21,7 +22,7 @@ Random (sometimes useful) tools for (mostly) windows that (probably) shouldn't g
 call lib.cmd strlen "Hello World"
 ```
 
-All tools [@cp7crash](https://www.github.com/cp7crash); inspiration from many.  
+All tools [@cp7crash](https://www.github.com/cp7crash); inspiration from many.
 Actively trying to do something about most of this list making me feel old 😞
 
 [![License: CCL](https://licensebuttons.net/l/zero/1.0/80x15.png)](http://creativecommons.org/publicdomain/zero/1.0/)
