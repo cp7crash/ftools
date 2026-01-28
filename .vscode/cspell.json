@@ -1,0 +1,20 @@
+{
+  "version": "0.2",
+  "language": "en,en-GB",
+  "ignorePaths": [".gitignore"],
+  "words": [
+    "endlocal",
+    "fini",
+    "ftlib",
+    "ftools",
+    "pingalot",
+    "popd",
+    "pushd",
+    "setlocal",
+    "shrinkpath",
+    "unsvn",
+    "unsvnx",
+    "usebackq"
+  ],
+  "flagWords": []
+}
